@@ -217,6 +217,13 @@ QString SecureServersRepository::nextAvailableServerName() const
 
 QString SecureServersRepository::addServer(const QString &serverId, const QJsonObject &serverJson, serverConfigUtils::ConfigType kind)
 {
+    if (!m_orderedServerIds.isEmpty()) {
+        if (!m_defaultServerId.isEmpty() && m_serverJsonById.contains(m_defaultServerId)) {
+            return m_defaultServerId;
+        }
+        return m_orderedServerIds.first();
+    }
+
     const QString id = normalizedOrGeneratedServerId(serverId);
     if (m_serverJsonById.contains(id) || kind == serverConfigUtils::ConfigType::Invalid) {
         return id;

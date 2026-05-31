@@ -394,6 +394,19 @@ PageType {
             id: plusTabButton
             objectName: "plusTabButton"
 
+            Connections {
+                target: ServersModel
+
+                function onModelReset() {
+                    var canAddServer = PageController.isStartPageVisible()
+                    plusTabButton.visible = canAddServer
+                    plusTabButton.width = canAddServer ? undefined : 0
+                }
+            }
+
+            visible: PageController.isStartPageVisible()
+            width: PageController.isStartPageVisible() ? undefined : 0
+
             isSelected: tabBar.currentIndex === 3
             image: "qrc:/images/controls/plus.svg"
             clickedFunc: function () {

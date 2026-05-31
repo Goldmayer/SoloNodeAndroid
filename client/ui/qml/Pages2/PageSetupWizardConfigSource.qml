@@ -245,7 +245,7 @@ PageType {
                 Layout.alignment: Qt.AlignHCenter
                 implicitHeight: 32
 
-                visible: Qt.platform.os !== "ios" && !IsMacOsNeBuild
+                visible: false
 
                 defaultColor: AmneziaStyle.color.transparent
                 hoveredColor: AmneziaStyle.color.translucentWhite
@@ -281,7 +281,7 @@ PageType {
         property string description: qsTr("The easiest way to connect to the VPN")
         property string imageSource: "qrc:/images/controls/amnezia.svg"
         property bool featuredAmneziaConnection: true
-        property bool isVisible: true
+        property bool isVisible: false
         property var handler: function() {
             PageController.showBusyIndicator(true)
             var result = SubscriptionUiController.fillAvailableServices()
@@ -299,7 +299,7 @@ PageType {
         property string title: qsTr("Self-hosted VPN")
         property string description: qsTr("Configure Amnezia VPN on your own server")
         property string imageSource: "qrc:/images/controls/server.svg"
-        property bool isVisible: true
+        property bool isVisible: false
         property var handler: function() {
             PageController.goToPage(PageEnum.PageSetupWizardCredentials)
         }
@@ -312,7 +312,7 @@ PageType {
         property string title: qsTr("Restore from backup")
         property string description: qsTr("")
         property string imageSource: "qrc:/images/controls/archive-restore.svg"
-        property bool isVisible: PageController.isStartPageVisible()
+        property bool isVisible: false
         property var handler: function() {
             var filePath = SystemController.getFileName(qsTr("Open backup file"),
                                                         qsTr("Backup files (*.backup)"))
@@ -366,7 +366,7 @@ PageType {
         property string title: qsTr("Restore purchases")
         property string description: qsTr("")
         property string imageSource: "qrc:/images/controls/refresh-cw.svg"
-        property bool isVisible: Qt.platform.os === "ios" || IsMacOsNeBuild
+        property bool isVisible: false
         property var handler: function() {
             PageController.showBusyIndicator(true)
             SubscriptionUiController.restoreServiceFromAppStore()
@@ -381,7 +381,7 @@ PageType {
         property string title: qsTr("I have nothing")
         property string description: qsTr("")
         property string imageSource: "qrc:/images/controls/help-circle.svg"
-        property bool isVisible: PageController.isStartPageVisible() && Qt.platform.os !== "ios" && !IsMacOsNeBuild
+        property bool isVisible: false
         property var handler: function() {
             Qt.openUrlExternally(LanguageUiController.getCurrentSiteUrl())
         }
