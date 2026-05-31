@@ -1,0 +1,91 @@
+name: Android build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - solonode-android
+
+env:
+  QT_VERSION: 6.10.1
+  QT_MIRROR: https://mirrors.ocf.berkeley.edu/qt/
+  ANDROID_NDK_VERSION: 27.0.11718014
+  ANDROID_PLATFORM: android-28
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 10
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Install Conan
+        run: pip install "conan==2.28.0"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android packages
+        run: |
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-28" \
+            "build-tools;36.0.0" \
+            "ndk;27.0.11718014"
+
+      - name: Install Qt desktop
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: linux
+          target: desktop
+          arch: linux_gcc_64
+          modules: qtremoteobjects qt5compat qtshadertools
+          dir: ${{ runner.temp }}/qt-desktop
+          setup-python: false
+          aqtversion: '==3.3.0'
+          py7zrversion: '==0.22.*'
+          extra: '--base ${{ env.QT_MIRROR }}'
+
+      - name: Install Qt Android
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: linux
+          target: android
+          arch: android_arm64_v8a
+          modules: qtremoteobjects qt5compat qtshadertools
+          dir: ${{ runner.temp }}/qt-android
+          setup-python: false
+          aqtversion: '==3.3.0'
+          py7zrversion: '==0.22.*'
+          extra: '--base ${{ env.QT_MIRROR }}'
+
+      - name: Build Android
+        env:
+          QT_INSTALL_DIR: ${{ runner.temp }}/qt-android
+          QT_ROOT_PATH: ${{ runner.temp }}/qt-android/6.10.1/android_arm64_v8a
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          ANDROID_NDK_ROOT: ${{ env.ANDROID_HOME }}/ndk/27.0.11718014
+          ANDROID_NDK_VERSION: 27.0.11718014
+          ANDROID_PLATFORM: android-28
+        run: deploy/build.sh -t android --aab
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: solonode-android-build
+          path: |
+            deploy/build/**/*.apk
+            deploy/build/**/*.aab
+          if-no-files-found: warn
+          retention-days: 7
