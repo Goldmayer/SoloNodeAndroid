@@ -67,6 +67,16 @@ if(APPLE AND NOT IOS)
 endif()
 
 
+# === SoloNode desktop identity (Windows only; Android/Linux/macOS stay AmneziaVPN) ===
+set(SOLONODE_APP_NAME     "AmneziaVPN")
+set(SOLONODE_ORG_NAME     "AmneziaVPN.ORG")
+set(SOLONODE_SERVICE_NAME "AmneziaVPN-service")
+if(WIN32)
+    set(SOLONODE_APP_NAME     "SoloNode")
+    set(SOLONODE_ORG_NAME     "SoloNode")
+    set(SOLONODE_SERVICE_NAME "SoloNode-service")
+endif()
+
 add_subdirectory(client)
 
 if(NOT IOS AND NOT ANDROID AND NOT MACOS_NE)

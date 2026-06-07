@@ -1,7 +1,7 @@
 set(CPACK_PACKAGE_VENDOR            AmneziaVPN)
 set(CPACK_PACKAGE_VERSION           ${AMNEZIAVPN_VERSION})
 if(WIN32)
-    set(CPACK_PACKAGE_FILE_NAME "AmneziaVPN_${AMNEZIAVPN_VERSION}_windows_x64")
+    set(CPACK_PACKAGE_FILE_NAME "SoloNode_${AMNEZIAVPN_VERSION}_windows_x64")
 elseif(APPLE AND NOT IOS AND NOT MACOS_NE)
     set(CPACK_PACKAGE_FILE_NAME "AmneziaVPN_${AMNEZIAVPN_VERSION}_macos_x64")
 elseif(LINUX AND NOT ANDROID)
@@ -33,9 +33,18 @@ set(CPACK_IFW_PACKAGE_ALLOW_SPACE_IN_PATH           ON)
 set(CPACK_IFW_PACKAGE_ALLOW_NON_ASCII_CHARACTERS    ON)
 set(CPACK_IFW_PACKAGE_CONTROL_SCRIPT                ${CMAKE_SOURCE_DIR}/deploy/installer/qif/controlscript.js)
 
+# === SoloNode Windows identity (installed side-by-side with original AmneziaVPN) ===
+if(WIN32)
+    set(CPACK_PACKAGE_NAME              "SoloNode")
+    set(CPACK_PACKAGE_VENDOR            "SoloNode")
+    set(CPACK_PACKAGE_INSTALL_DIRECTORY "SoloNode")
+    set(CPACK_IFW_PACKAGE_NAME          "SoloNode")
+    set(CPACK_IFW_PACKAGE_TITLE         "SoloNode")
+endif()
+
 # === CPack WIX generator settings ===
 set(CPACK_WIX_VERSION               4)
-set(CPACK_WIX_UPGRADE_GUID          "{2D55AC62-96D6-4692-8C05-0D85BBF95485}")
+set(CPACK_WIX_UPGRADE_GUID          "{C9E5A1F4-3B7D-4E62-9A18-6F2D5B0C7E34}")
 set(CPACK_WIX_PRODUCT_ICON          ${CMAKE_SOURCE_DIR}/client/images/app.ico)
 set(CPACK_WIX_CUSTOM_XMLNS          "util=http://wixtoolset.org/schemas/v4/wxs/util")
 set(_AMNEZIA_WIX_PATCH_SERVICE      ${CMAKE_SOURCE_DIR}/deploy/installer/wix/service_install_patch.xml)

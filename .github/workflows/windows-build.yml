@@ -110,10 +110,10 @@ jobs:
       #   - cmake --install (copies EXE, service EXE, driver files, post_install.cmd)
       #   - qt_generate_deploy_qml_app_script runs windeployqt (copies Qt DLLs)
       #   - install(RUNTIME_DEPENDENCY_SET ...) copies Conan runtime DLLs
-      #   - WiX compiles deploy/installer/wix/*.xml patches -> AmneziaVPN_*_windows_x64.msi
+      #   - WiX compiles deploy/installer/wix/*.xml patches -> SoloNode_*_windows_x64.msi
       #   sign_packages.cmake also guards on SIGNTOOL_SUBJECT_NAME -> no-op here.
       #
-      # Output: deploy/build/AmneziaVPN_<version>_windows_x64.msi
+      # Output: deploy/build/SoloNode_<version>_windows_x64.msi
       - name: Build WIX installer
         shell: cmd
         continue-on-error: true
@@ -126,7 +126,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: SoloNode-windows-x64-installer
-          path: deploy/build/AmneziaVPN_*_windows_x64.msi
+          path: deploy/build/SoloNode_*_windows_x64.msi
           if-no-files-found: warn
           retention-days: 14
 
