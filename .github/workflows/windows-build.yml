@@ -1,0 +1,144 @@
+name: Windows Desktop Build
+
+# Triggers:
+#   - workflow_dispatch: manual launch from GitHub Actions tab (any branch)
+#   - push to claude/** branches (worktree CI branches)
+# Does NOT trigger on dev/main to avoid conflicts with the upstream deploy.yml.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'claude/**'
+
+env:
+  QT_MIRROR: https://mirrors.ocf.berkeley.edu/qt/
+  QT_VERSION: 6.10.1
+
+jobs:
+  Build-Windows-x64:
+    runs-on: windows-latest
+
+    steps:
+      # ?? 1. Sources ????????????????????????????????????????????????????????
+      - name: Get sources
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+          fetch-depth: 10
+
+      # ?? 2. Qt 6.10.1 msvc2022_64 ?????????????????????????????????????????
+      # Installs to ${{ runner.temp }}/Qt/6.10.1/msvc2022_64/
+      # build.bat searches for Qt under QT_INSTALL_DIR\Qt\<version>\
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2022_64'
+          modules: 'qtremoteobjects qt5compat qtshadertools'
+          dir: ${{ runner.temp }}
+          setup-python: 'true'
+          set-env: 'true'
+          aqtversion: '==3.3.0'
+          py7zrversion: '==0.22.*'
+          extra: '--base ${{ env.QT_MIRROR }}'
+
+      # ?? 3. MSVC 2022 x64 compiler environment ????????????????????????????
+      # Sets INCLUDE, LIB, PATH with cl.exe / link.exe so build.bat / CMake
+      # can find the toolchain without needing vswhere (which also works, but
+      # ilammy is faster and more reliable on hosted runners).
+      - name: Setup MSVC (x64)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: 'x64'
+
+      # ?? 4. WiX Toolset 4.0.6 (needed for MSI installer) ??????????????????
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install WiX Toolset 4.0.6
+        shell: powershell
+        run: |
+          dotnet tool install --global wix --version 4.0.6
+          wix extension add -g WixToolset.UI.wixext/4.0.6
+          wix extension add -g WixToolset.Util.wixext/4.0.6
+          wix extension list -g
+
+      # ?? 5. Python + Conan ?????????????????????????????????????????????????
+      # cmake/recipes_bootstrap.cmake (runs during cmake configure) handles:
+      #   - conan export of all local recipes (recipes/**/conanfile.py)
+      #   - conan remote add amnezia https://artifactory.amnezia.org/...
+      # So Conan can resolve Windows-only packages (awg-windows, wintun,
+      # tap-windows6, win-split-tunnel) from the public Amnezia Artifactory
+      # without any explicit auth ? auth is only needed for uploading.
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Conan
+        run: pip install "conan==2.28.0"
+
+      # ?? 6. CMake configure + compile ??????????????????????????????????????
+      # build.bat (deploy/build.bat):
+      #   1. Locates Qt under %QT_INSTALL_DIR%\Qt\6.10.1\
+      #   2. Calls vcvarsall (already set up above, so vswhere exits immediately)
+      #   3. cmake -S . -B deploy\build -DCMAKE_BUILD_TYPE=Release
+      #      -> recipes_bootstrap.cmake registers Amnezia remote, exports recipes
+      #      -> Conan downloads prebuilt Windows binaries from Amnezia Artifactory
+      #   4. cmake --build deploy\build --config Release -- /m
+      #
+      # SIGNTOOL_SUBJECT_NAME is intentionally NOT set here.
+      # cmake/sign_binaries.cmake checks: if(BINARIES AND SIGNTOOL_SUBJECT_NAME)
+      # and silently skips signing when the variable is empty. The MSI will be
+      # unsigned but fully installable for internal testing.
+      - name: Build project (configure + compile)
+        shell: cmd
+        env:
+          QT_INSTALL_DIR: ${{ runner.temp }}
+        run: deploy\build.bat
+
+      # ?? 7. Package WIX installer (.msi) ???????????????????????????????????
+      # Run cpack separately from the build step so that if packaging fails
+      # (e.g. a WiX schema mismatch) the compiled binaries are still available
+      # as the fallback artifact below.
+      #
+      # What cpack does here:
+      #   - cmake --install (copies EXE, service EXE, driver files, post_install.cmd)
+      #   - qt_generate_deploy_qml_app_script runs windeployqt (copies Qt DLLs)
+      #   - install(RUNTIME_DEPENDENCY_SET ...) copies Conan runtime DLLs
+      #   - WiX compiles deploy/installer/wix/*.xml patches -> AmneziaVPN_*_windows_x64.msi
+      #   sign_packages.cmake also guards on SIGNTOOL_SUBJECT_NAME -> no-op here.
+      #
+      # Output: deploy/build/AmneziaVPN_<version>_windows_x64.msi
+      - name: Build WIX installer
+        shell: cmd
+        continue-on-error: true
+        run: |
+          set WIX_ROOT_PATH=%USERPROFILE%\.dotnet\tools
+          cd deploy\build && cpack -G WIX -D "WIX_BIN_DIR=%WIX_ROOT_PATH%"
+
+      # ?? 8. Upload artifacts ???????????????????????????????????????????????
+      - name: Upload MSI installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: SoloNode-windows-x64-installer
+          path: deploy/build/AmneziaVPN_*_windows_x64.msi
+          if-no-files-found: warn
+          retention-days: 14
+
+      # Fallback: raw EXE from the build step.
+      # NOTE: this binary has no Qt DLLs alongside it (windeployqt runs during
+      # cpack/install, not during cmake build). It will NOT launch directly.
+      # Use it only to verify the compiler step succeeded on its own.
+      - name: Upload raw client binary (diagnostic fallback)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: SoloNode-windows-x64-raw-exe
+          path: deploy/build/client/Release/
+          if-no-files-found: warn
+          retention-days: 7
