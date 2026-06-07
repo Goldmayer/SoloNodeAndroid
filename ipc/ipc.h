@@ -5,6 +5,7 @@
 #include <QString>
 
 #include "../client/core/utils/utilities.h"
+#include "version.h"
 
 #define IPC_SERVICE_URL "local:AmneziaVpnIpcInterface"
 
@@ -37,7 +38,7 @@ inline QString permittedProcessPath(PermittedProcess pid)
 
 inline QString getIpcServiceUrl() {
 #ifdef Q_OS_WIN
-    return IPC_SERVICE_URL;
+    return QString("local:%1IpcInterface").arg(APPLICATION_NAME);
 #else
     return QString("/tmp/%1").arg(IPC_SERVICE_URL);
 #endif
@@ -45,7 +46,7 @@ inline QString getIpcServiceUrl() {
 
 inline QString getIpcProcessUrl(int pid) {
 #ifdef Q_OS_WIN
-    return QString("%1_%2").arg(IPC_SERVICE_URL).arg(pid);
+    return QString("local:%1IpcInterface_%2").arg(APPLICATION_NAME).arg(pid);
 #else
     return QString("/tmp/%1_%2").arg(IPC_SERVICE_URL).arg(pid);
 #endif
