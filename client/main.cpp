@@ -19,9 +19,9 @@
 bool isAnotherInstanceRunning()
 {
     QLocalSocket socket;
-    socket.connectToServer("AmneziaVPNInstance");
+    socket.connectToServer(APPLICATION_NAME "Instance");
     if (socket.waitForConnected(500)) {
-        qWarning() << "AmneziaVPN is already running";
+        qWarning() << APPLICATION_NAME << "is already running";
         return true;
     }
     return false;
